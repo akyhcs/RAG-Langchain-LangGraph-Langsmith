@@ -1,0 +1,11 @@
+Based on the images provided, here is a structured comparison table between a **Vector Store** and a **Vector Database**.
+### **Vector Store vs. Vector Database**
+| Feature | Vector Store | Vector Database |
+|---|---|---|
+| **What it is** | A lightweight library or tool focused on storing and searching vectors efficiently. | A full-featured database system designed for vector data at scale. |
+| **Core Function** | Simple similarity search: find the **K nearest neighbors** to a query vector. | Advanced search with **filters, metadata queries**, and standard database operations (**CRUD**). |
+| **Architecture** | Usually runs **in-memory** or as a **local file**; single-machine operation. | **Distributed system** with replication, sharding, and high availability. |
+| **Best For** | Prototypes, research, and small applications with **<1M vectors**. | Production systems, enterprise applications, and **billions of vectors**. |
+### **Key Takeaways**
+ * **Vector Stores** (like FAISS or Chroma in-memory) are great for getting a project off the ground or working with small datasets where you don't need complex management.
+ * **Vector Databases** (like Pinecone, Milvus, or Weaviate) are necessary when you need your data to be persistent, scalable, and searchable using complex filters alongside the vector embeddings.
