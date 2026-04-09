@@ -1,0 +1,18 @@
+A **semantic similarity check** is the process of determining how closely two pieces of text resemble each other in *meaning* and context, rather than simply looking for exact keyword matches.
+In the RAG architecture you are exploring, this is the exact mechanism happening under the hood during **Step 6: Similarity Search**.
+### **How It Works versus Traditional Search**
+Traditional systems often rely on **Lexical Search** (keyword matching). If you search for "cat," it looks specifically for the string "cat." Semantic search, however, uses **Vector Embeddings**. An embedding model evaluates the text and converts it into a high-dimensional array of numbers (a vector) that maps its underlying meaning.
+Consider these three sentences:
+ * **Text A:** "The feline chased the mouse."
+ * **Text B:** "A cat hunted a rodent."
+ * **Text C:** "The car chased the motorcycle."
+A standard keyword search sees zero overlap between Text A and Text B. However, a semantic similarity check plots these concepts in a mathematical space. It recognizes that "feline" and "cat" share near-identical contexts, grouping Text A and Text B closely together, while pushing Text C (vehicles) far away.
+### **The Math Behind the Match**
+When a user's query is converted into a vector and compared against the document chunks stored in a vector database like ChromaDB, the system calculates the mathematical distance between those vectors to find the closest matches. The most common metrics include:
+ * **Cosine Similarity:** Measures the angle between two vectors. It focuses on the direction rather than the magnitude (length) of the vectors, making it excellent for comparing texts of different lengths.
+   
+ * **Euclidean Distance (L2 Squared):** Measures the straight-line distance between the endpoints of two vectors in the multidimensional space.
+ * **Dot Product:** Multiplies the vectors directly, factoring in both their direction and magnitude.
+By calculating one of these metrics, the system can rank the chunks in your vector store and return the "K-nearest neighbors"—the most semantically relevant pieces of context—to feed to your LLM for response generation.
+Are you currently trying to configure a specific distance metric for your ChromaDB implementation, or are you evaluating which embedding model to use for the initial text conversion?
+
