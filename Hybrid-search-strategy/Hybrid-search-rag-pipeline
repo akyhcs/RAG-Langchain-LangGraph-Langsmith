@@ -1,0 +1,109 @@
+from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.retrievers import BM25Retriever
+from langchain.retrievers import EnsembleRetriever
+from langchain.schema import Document
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+from langchain_openai import ChatOpenAI  # or swap with any LLM you prefer
+
+# ── 1. Documents ──────────────────────────────────────────────────────────────
+# Replace with your own docs: load from PDF, DB, web, etc.
+docs = [
+    Document(page_content="LangChain is a framework for building LLM-powered applications.", metadata={"source": "langchain_docs"}),
+    Document(page_content="FAISS is a library for efficient similarity search of dense vectors.", metadata={"source": "faiss_docs"}),
+    Document(page_content="BM25 is a classic sparse keyword-based ranking algorithm used in search engines.", metadata={"source": "ir_textbook"}),
+    Document(page_content="RAG stands for Retrieval-Augmented Generation. It grounds LLM responses with external knowledge.", metadata={"source": "rag_paper"}),
+    Document(page_content="Hybrid search combines dense semantic search with sparse keyword search for better recall.", metadata={"source": "hybrid_blog"}),
+    Document(page_content="EnsembleRetriever in LangChain merges results using Reciprocal Rank Fusion (RRF).", metadata={"source": "langchain_docs"}),
+    Document(page_content="LangGraph lets you build stateful multi-agent workflows using a graph-based approach.", metadata={"source": "langgraph_docs"}),
+    Document(page_content="Sentence transformers produce dense embeddings that capture semantic meaning of text.", metadata={"source": "sbert_docs"}),
+]
+
+# ── 2. Sparse Retriever — BM25 ────────────────────────────────────────────────
+bm25_retriever = BM25Retriever.from_documents(docs)
+bm25_retriever.k = 3
+
+# ── 3. Dense Retriever — FAISS ────────────────────────────────────────────────
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    encode_kwargs={"normalize_embeddings": True}
+)
+vectorstore = FAISS.from_documents(docs, embeddings)
+faiss_retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+
+# ── 4. Hybrid Retriever — Ensemble ───────────────────────────────────────────
+hybrid_retriever = EnsembleRetriever(
+    retrievers=[bm25_retriever, faiss_retriever],
+    weights=[0.5, 0.5]  # tune: [0.7,0.3]=keyword-heavy | [0.3,0.7]=semantic-heavy
+)
+
+# ── 5. LLM ────────────────────────────────────────────────────────────────────
+# Swap ChatOpenAI with any LangChain-supported LLM:
+#   from langchain_anthropic import ChatAnthropic  → ChatAnthropic(model="claude-3-5-sonnet-20241022")
+#   from langchain_google_genai import ChatGoogleGenerativeAI → ChatGoogleGenerativeAI(model="gemini-pro")
+#   from langchain_ollama import ChatOllama → ChatOllama(model="llama3")
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0,
+    # api_key="sk-..."   # or set OPENAI_API_KEY env variable
+)
+
+# ── 6. Prompt ─────────────────────────────────────────────────────────────────
+prompt = ChatPromptTemplate.from_template("""
+You are a helpful assistant. Answer the question using ONLY the provided context.
+If the answer is not in the context, say "I don't have enough information to answer that."
+
+Context:
+{context}
+
+Question: {question}
+
+Answer:
+""")
+
+# ── 7. Format retrieved docs ──────────────────────────────────────────────────
+def format_docs(docs: list[Document]) -> str:
+    return "\n\n".join(
+        f"[Source: {doc.metadata.get('source', 'unknown')}]\n{doc.page_content}"
+        for doc in docs
+    )
+
+# ── 8. RAG Chain ──────────────────────────────────────────────────────────────
+rag_chain = (
+    {
+        "context": hybrid_retriever | format_docs,
+        "question": RunnablePassthrough()
+    }
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+# ── 9. Run Queries ────────────────────────────────────────────────────────────
+questions = [
+    "What is RAG and why is it useful?",
+    "How does hybrid search improve retrieval?",
+    "What is BM25 used for?",
+]
+
+print("=" * 60)
+print("  RAG Pipeline with Hybrid Retriever")
+print("=" * 60)
+
+for question in questions:
+    print(f"\n❓ Question: {question}")
+
+    # Show what the hybrid retriever fetched
+    retrieved = hybrid_retriever.invoke(question)
+    print("\n📄 Retrieved Chunks:")
+    for i, doc in enumerate(retrieved, 1):
+        src = doc.metadata.get("source", "unknown")
+        print(f"  {i}. [{src}] {doc.page_content}")
+
+    # Generate answer
+    answer = rag_chain.invoke(question)
+    print(f"\n🤖 Answer: {answer}")
+    print("-" * 60)
+
