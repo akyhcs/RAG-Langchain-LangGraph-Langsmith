@@ -63,3 +63,150 @@ Hybrid retrieval consistently **outperforms** either method alone on most RAG be
 ---
 
 Want me to show a code example of implementing hybrid search in LangChain or another framework?
+
+Here's a Python implementation of Hybrid Search in RAG using LangChain:
+
+Here's a quick summary of the code flow:
+
+1. **Documents** → your knowledge base (same 3 from your slide + more)
+2. **Dense Retriever** → FAISS + OpenAI embeddings for semantic search
+3. **Sparse Retriever** → BM25 for keyword matching
+4. **EnsembleRetriever** → combines both using your λ weight
+5. **RAG Chain** → passes retrieved docs to GPT-4 to generate the final answer
+
+Just replace `"YOUR_OPENAI_API_KEY"` with your actual key to run it. Want me to extend this with a custom scoring function or a different vector store like Pinecone?
+# ============================================================
+# Hybrid RAG Search Implementation
+# Combines Dense (Semantic) + Sparse (BM25) Retrieval
+# ============================================================
+
+# Install required packages:
+# pip install langchain langchain-community langchain-openai
+# pip install faiss-cpu rank_bm25 openai
+
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_community.vectorstores import FAISS
+from langchain_community.retrievers import BM25Retriever
+from langchain.retrievers import EnsembleRetriever
+from langchain.schema import Document
+from langchain.chains import RetrievalQA
+
+
+# ============================================================
+# STEP 1: Define Documents (your knowledge base)
+# ============================================================
+
+docs = [
+    Document(page_content="LangChain supports agents and chains"),
+    Document(page_content="The Eiffel Tower is in Paris"),
+    Document(page_content="You can build LLM-powered apps using LangChain"),
+    Document(page_content="Paris is the capital of France"),
+    Document(page_content="RAG stands for Retrieval-Augmented Generation"),
+]
+
+
+# ============================================================
+# STEP 2: Dense Retriever (Semantic Search using FAISS)
+# ============================================================
+
+embeddings = OpenAIEmbeddings(openai_api_key="YOUR_OPENAI_API_KEY")
+
+# Build FAISS vector store from documents
+vectorstore = FAISS.from_documents(docs, embeddings)
+
+# Convert to retriever (fetch top 2 results)
+dense_retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
+
+
+# ============================================================
+# STEP 3: Sparse Retriever (Keyword Search using BM25)
+# ============================================================
+
+bm25_retriever = BM25Retriever.from_documents(docs)
+bm25_retriever.k = 2  # fetch top 2 results
+
+
+# ============================================================
+# STEP 4: Hybrid Retriever (Ensemble of Dense + Sparse)
+#
+# Score_hybrid = λ * Score_dense + (1 - λ) * Score_sparse
+# weights=[λ, 1-λ]  — must sum to 1.0
+# ============================================================
+
+LAMBDA = 0.5  # Tune this: 0=pure sparse, 1=pure dense
+
+hybrid_retriever = EnsembleRetriever(
+    retrievers=[dense_retriever, bm25_retriever],
+    weights=[LAMBDA, 1 - LAMBDA]  # [dense_weight, sparse_weight]
+)
+
+
+# ============================================================
+# STEP 5: Build the RAG Chain
+# ============================================================
+
+llm = ChatOpenAI(
+    model="gpt-4",
+    temperature=0,
+    openai_api_key="YOUR_OPENAI_API_KEY"
+)
+
+rag_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
+    retriever=hybrid_retriever,
+    return_source_documents=True  # show which docs were retrieved
+)
+
+
+# ============================================================
+# STEP 6: Query the Hybrid RAG System
+# ============================================================
+
+def ask(query: str):
+    print(f"\n🔍 Query: {query}")
+    result = rag_chain.invoke({"query": query})
+    
+    print(f"\n💡 Answer:\n{result['result']}")
+    
+    print(f"\n📄 Retrieved Documents:")
+    for i, doc in enumerate(result["source_documents"], 1):
+        print(f"  [{i}] {doc.page_content}")
+    print("-" * 50)
+
+
+# ============================================================
+# STEP 7: Test with Example Queries
+# ============================================================
+
+if __name__ == "__main__":
+    
+    # Semantic query — dense retrieval will shine here
+    ask("What city has the famous French landmark?")
+    
+    # Keyword query — sparse (BM25) will shine here
+    ask("What is LangChain used for?")
+    
+    # Mixed query — hybrid wins here
+    ask("How can I build AI apps with retrieval?")
+
+
+# ============================================================
+# TUNING GUIDE
+# ============================================================
+#
+# Use higher λ (closer to 1.0) when:
+#   - Queries are conversational or conceptual
+#   - Paraphrasing is common
+#   - Semantic understanding matters most
+#
+# Use lower λ (closer to 0.0) when:
+#   - Queries contain specific keywords, codes, names
+#   - Exact term matching is critical (e.g., legal, medical)
+#
+# Recommended starting point: λ = 0.5
+# ============================================================
+
+
+
+
