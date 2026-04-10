@@ -1,0 +1,23 @@
+Building a Retrieval-Augmented Generation (RAG) pipeline involves three main phases: **Data Ingestion**, **Retrieval**, and **Generation**. To build a robust pipeline, you need specific components to handle the data flow at each stage.
+Here is a breakdown of everything required:
+### 1. Data Ingestion (The Indexing Phase)
+This phase prepares your raw data and stores it in a searchable format. It typically runs as a background process or batch job.
+ * **Data Sources:** The raw content you want the AI to know about (e.g., Markdown files, legacy database records, PDFs, or enterprise wikis).
+ * **Document Loaders:** Integrations or scripts that connect to your sources and extract the raw text.
+ * **Text Splitters (Chunking):** LLMs have strict context limits. You need to break large documents into smaller, meaningful chunks (e.g., paragraphs or overlapping sliding windows) to preserve semantic meaning and optimize retrieval.
+ * **Embedding Model:** A specialized AI model that converts your text chunks into dense mathematical vectors (arrays of floating-point numbers).
+ * **Vector Database:** The storage engine designed for similarity searches. For self-hosted and local Docker deployments, tools like **ChromaDB** or **FAISS** are excellent choices for managing these embeddings and their associated metadata.
+### 2. Retrieval Phase
+This phase executes at runtime the moment a user submits a prompt.
+ * **Query Embedding:** The user's natural language query is passed through the *exact same* embedding model used during the ingestion phase to create a query vector.
+ * **Similarity Search:** The vector database compares the query vector against the stored document vectors using algorithms like Cosine Similarity to find the closest semantic matches (Nearest Neighbors).
+ * **Reranker (Optional but Recommended):** A secondary model that takes the initial top results from the vector database and re-scores them based on actual relevance to the query, filtering out loosely related data.
+### 3. Generation Phase
+This is where the final response is synthesized.
+ * **Prompt Orchestration:** The pipeline constructs a dynamic prompt. It injects the retrieved text chunks (the "context") alongside the user's original query and your system instructions.
+ * **The LLM:** The large language model receives the enriched prompt and generates a fact-based answer, constrained by the provided context to prevent hallucinations.
+### 4. Orchestration Framework
+To tie all of these moving parts together seamlessly, you need an orchestration layer in your application code.
+ * **Frameworks:** Instead of writing the API connections from scratch, frameworks handle the plumbing. While LangChain is popular in Python, the Java ecosystem has tools like **Spring AI**, which integrates natively into enterprise Spring Boot applications and manages the connections between your vector stores, embedding models, and LLMs.
+
+
