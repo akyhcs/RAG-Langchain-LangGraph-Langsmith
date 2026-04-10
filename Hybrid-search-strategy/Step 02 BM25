@@ -1,0 +1,38 @@
+
+
+BM25 is the modern, improved successor to TF-IDF.
+
+While TF-IDF is the concept (and was used in the 1990s/2000s), BM25 is the actual algorithm running inside almost every search engine today (Elasticsearch, Lucene, OpenSearch).
+
+Here is the specific difference and why BM25 wins:
+
+The Critical Flaw TF-IDF Had
+
+TF-IDF assumes more words = more relevance. If Document A mentions "Python" 100 times, TF-IDF scores it much higher than Document B that mentions it 10 times.
+
+BM25 fixes this with "Saturation." It recognizes that after about 5-6 mentions of a word, the document is already definitely about that topic. Repeating the word 94 more times adds no extra value.
+
+The "Saturation Curve" Comparison
+
+Frequency of "Quantum" in Doc TF-IDF Score BM25 Score
+1 time 1.0 1.0
+5 times 5.0 ~2.5
+100 times 100.0 ~3.1
+
+Result: BM25 prevents Keyword Stuffing. You can't cheat the algorithm by writing "Quantum Quantum Quantum" at the bottom of a webpage anymore.
+
+The Other BM25 Improvement: Length Normalization
+
+TF-IDF heavily penalizes long documents (because the denominator is total words).
+
+· Scenario: A 500-page book about Physics mentions "Quantum Gravity" in Chapter 12. A 1-page PDF titled "Quantum Gravity Explained" mentions it twice.
+· BM25 Logic: BM25 has a parameter (b) that says: "We expect long books to have more words just by nature of being long. Let's give them a fair chance."
+
+Summary Table: TF-IDF vs. BM25
+
+Feature TF-IDF BM25
+Term Saturation Linear (Unlimited growth) Saturates (Cap on relevance)
+Cheating Easy (Just repeat keyword) Difficult
+Use in Hybrid RAG Rarely used anymore The Standard Sparse Retriever
+
+One-liner for your notes: BM25 is to TF-IDF what a modern smartphone is to a 2002 flip phone. They both make calls, but one handles the complexity of the real world infinitely better.
