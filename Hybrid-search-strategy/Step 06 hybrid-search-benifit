@@ -1,0 +1,23 @@
+ **why hybrid search works better** than either method alone. Here's a summary of all 7 benefits:
+
+| # | Benefit | Why it matters |
+|---|---------|---------------|
+| 1 | **Boosts Recall** | BM25 catches exact keyword hits; FAISS catches meaning — together they miss fewer relevant docs |
+| 2 | **Handles Synonyms & Rephrasing** | FAISS matches "create app" with "build LLM system"; BM25 catches exact terms like "LLM", "app" |
+| 3 | **Improves Robustness** | Covers users who search by specific terms AND those who use natural language phrasing |
+| 4 | **Supports Lexical Importance** | BM25 scores rare keywords higher — critical in technical/legal/medical domains (e.g. "osteoporosis") |
+| 5 | **Bridges Document Diversity** | Large corpora mix well-structured and loosely written text — hybrid adapts to both |
+| 6 | **Easy to Tune via Weights** | `score = 0.7 * dense + 0.3 * sparse` — adjust per your use case |
+| 7 | **Helps with Misspellings** | Dense models tolerate typos like "llm aplication"; BM25 falls back on exact tokens |
+
+The diagram on the right also shows the flow clearly:
+
+```
+Vector Store
+    ↙        ↘
+ BM25    Semantic Search
+    ↘        ↙
+      Score (RRF)
+```
+
+This maps directly to our `EnsembleRetriever` code — the `weights=[0.5, 0.5]` parameter is exactly the tuning mentioned in **benefit #6**. Want to explore any of these benefits deeper in code?
