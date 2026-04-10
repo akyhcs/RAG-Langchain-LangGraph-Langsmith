@@ -1,0 +1,41 @@
+TF-IDF stands for Term Frequency-Inverse Document Frequency. It is the foundational algorithm behind Sparse Retrieval—the "keyword" side of the Hybrid Search we just discussed.
+
+In plain English: It measures how important a word is to a specific document within a larger collection of documents.
+
+It balances two competing forces:
+
+1. TF (Term Frequency) — How often does this word appear here?
+
+· Logic: If the word "quantum" appears 15 times in Document A but only 1 time in Document B, Document A is probably more about "quantum."
+· Formula (Simplest): Count of word in document / Total words in document.
+· Effect: Increases the score for common words in a single doc.
+
+2. IDF (Inverse Document Frequency) — How rare is this word overall?
+
+· Logic: Words like "the" or "is" appear in every document. They are useless for search. Words like "appendicitis" or "TF-IDF" appear in very few documents. They are extremely useful signals.
+· Formula: log(Total Number of Documents / Number of Documents containing the word).
+· Effect: Decreases the score for words that are too common across the whole library.
+
+The Final TF-IDF Score
+
+TF-IDF = (Local Importance) × (Global Rarity)
+
+Word Document A Score Why?
+The ~0.0 High TF, but extremely low IDF (it's everywhere).
+Quantum High Medium TF, High IDF (only in physics docs).
+Llama Highest Medium TF, Highest IDF (only in this animal/tech doc).
+
+Connection to Your Previous Questions
+
+· Sparse Retrieval: TF-IDF creates a Sparse Vector where 99% of dimensions (words not in the doc) are 0.
+· BM25: The modern standard for keyword search is BM25. It is essentially "TF-IDF 2.0" — a more mathematically stable version that handles document length better.
+· Hybrid RAG: When you use a Vector Database, it handles Dense search. You need a separate engine (like Elasticsearch or Lucene) that uses TF-IDF/BM25 to get the Sparse results.
+
+Simple Analogy
+
+Imagine you're looking for a restaurant recommendation in a city guidebook.
+
+· TF (Term Frequency): How many times is "Pizza" mentioned on this specific page?
+· IDF (Inverse Document Frequency): How many pages in the entire guidebook mention "Pizza"?
+  · If every page says "Great Pizza!" -> IDF is low. Useless signal.
+  · If only one page says "Authentic Neapolitan Pizza" -> IDF is high. That's the page you want.
