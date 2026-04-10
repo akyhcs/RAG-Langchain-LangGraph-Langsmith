@@ -1,0 +1,69 @@
+python semantic chunking for a Retrieval-Augmented Generation (RAG) pipeline. You have successfully imported the necessary libraries and initialized the all-MiniLM-L6-v2 sentence transformer model, and your cursor is ready to accept a sample text.
+Here is the transcribed code from your screen, along with a complete example of how you can implement the rest of the semantic chunking logic.
+### Your Current Setup
+```python
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
+## Initialize the model
+model=SentenceTransformer('all-MiniLM-L6-v2')
+
+## Sample text
+text=""""""
+
+```
+### Continuing the Implementation
+To actually perform semantic chunking, you will need to split your text into individual sentences, generate embeddings for each sentence, and then use cosine similarity to detect "shifts" in meaning between adjacent sentences. When the similarity drops below a certain threshold, you create a new chunk.
+Here is how you can fill in that sample text and build the chunking logic:
+```python
+import re
+
+## Sample text
+text="""Semantic chunking is a powerful technique in natural language processing. It groups text by meaning rather than arbitrary character counts. This ensures context is preserved for better retrieval. 
+Traditional token splitters often break sentences mid-thought, which can confuse AI models. By using sentence embeddings, we can measure how similar adjacent sentences are to one another. 
+If the similarity drops significantly, it indicates a shift in topic. This drop provides a natural boundary to split the document into manageable, coherent chunks."""
+
+# 1. Split the text into individual sentences
+# Note: In a production environment, you might use a more robust tokenizer like NLTK or spaCy.
+sentences = re.split(r'(?<=[.!?]) +', text.strip())
+sentences = [s.strip() for s in sentences if s.strip()]
+
+# 2. Generate embeddings for all sentences
+embeddings = model.encode(sentences)
+
+# 3. Calculate cosine similarity between adjacent sentences
+similarities = []
+for i in range(len(embeddings) - 1):
+    # Reshape is handled automatically when passing lists of arrays to cosine_similarity
+    sim = cosine_similarity([embeddings[i]], [embeddings[i+1]])[0][0]
+    similarities.append(sim)
+
+# 4. Group sentences into chunks based on a similarity threshold
+threshold = 0.5 # You can tune this threshold based on your specific dataset
+chunks = []
+current_chunk = [sentences[0]]
+
+for i, sim in enumerate(similarities):
+    if sim >= threshold:
+        # Meaning is similar, keep in the same chunk
+        current_chunk.append(sentences[i+1])
+    else:
+        # Meaning shifted, start a new chunk
+        chunks.append(" ".join(current_chunk))
+        current_chunk = [sentences[i+1]]
+
+# Append the final chunk
+if current_chunk:
+    chunks.append(" ".join(current_chunk))
+
+# Print the results
+for i, chunk in enumerate(chunks):
+    print(f"--- Chunk {i+1} ---")
+    print(chunk)
+    print()
+
+```
+### Why this approach matters
+By using all-MiniLM-L6-v2 to map sentences into dense vector space, you are calculating the actual semantic distance between thoughts. This approach to chunking is particularly useful when preparing high-quality data to be indexed into local vector databases like ChromaDB or FAISS. It ensures that when you run a similarity search later, the retrieved context contains complete, contextually relevant ideas rather than fragments cleanly sliced at 512 tokens.
+
