@@ -30,7 +30,7 @@ MMR = argmax [ λ · Sim(doc, query) - (1-λ) · max Sim(doc, selected) ]
 
 ```python
 retriever = vectorstore.as_retriever(
-    search_type="mmr",
+    search_type="mmr",###### MMR
     search_kwargs={
         "k": 5,          # number of docs to return
         "fetch_k": 20,   # candidate pool to consider
