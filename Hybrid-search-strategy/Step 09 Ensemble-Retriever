@@ -1,0 +1,53 @@
+Yes! In hybrid search, the equivalent concept is the **Ensemble Retriever** with weighted scoring:
+
+```python
+from langchain.retrievers import EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
+
+# BM25 - keyword based retriever
+bm25_retriever = BM25Retriever.from_documents(docs)
+bm25_retriever.k = 5
+
+# Dense - embedding based retriever
+dense_retriever = vectorstore.as_retriever(
+    search_kwargs={"k": 5}
+)
+
+# Hybrid = BM25 + Dense combined
+ensemble_retriever = EnsembleRetriever(
+    retrievers=[bm25_retriever, dense_retriever],
+    weights=[0.5, 0.5]  # adjust balance between keyword vs semantic
+)
+
+results = ensemble_retriever.invoke(query)
+```
+
+---
+
+**Comparison:**
+
+| | MMR | Hybrid (Ensemble) |
+|---|---|---|
+| Controls | `lambda_mult` | `weights` |
+| Purpose | relevance vs **diversity** | keyword vs **semantic** balance |
+| `lambda_mult=1` | pure relevance | — |
+| `weights=[1, 0]` | — | pure BM25 (keyword) |
+| `weights=[0, 1]` | — | pure dense (semantic) |
+
+---
+
+**You can also combine both** — use Ensemble for hybrid retrieval, then apply MMR on top:
+
+```python
+dense_retriever_mmr = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={"k": 5, "fetch_k": 20, "lambda_mult": 0.5}
+)
+
+ensemble_retriever = EnsembleRetriever(
+    retrievers=[bm25_retriever, dense_retriever_mmr],
+    weights=[0.4, 0.6]
+)
+```
+
+This gives you **keyword + semantic + diversity** all at once — the most robust retrieval setup for RAG.
