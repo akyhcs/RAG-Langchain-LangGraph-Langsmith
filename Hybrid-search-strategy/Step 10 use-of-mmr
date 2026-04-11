@@ -1,0 +1,32 @@
+Here's a clean summary of both slides:
+
+---
+
+## When to Use MMR
+
+**1. In a RAG pipeline** — to avoid feeding the LLM redundant documents
+- e.g. LangChain topics: FAISS, Agents, Memory, Prompt Chain, Hybrid Retrieval
+- → Result is richer, more useful context for the LLM
+
+**2. Chatbots** — FAQ, Search App, Document Browser
+
+**3. When the retriever already returns many results** + you need diversity
+
+**4. MMR + Hybrid Retrieval** → Dense + Sparse (best of all worlds)
+
+---
+
+## When NOT to Use MMR
+
+| Scenario | Why You Might Skip MMR |
+|---|---|
+| Extremely short context window | You may just want top-1 most relevant |
+| You need **precision only** | Not focused on coverage |
+| Documents are already diverse | No need to enforce diversity |
+| You're already reranking with LLM | Redundancy handled by post-filtering |
+
+---
+
+**Quick Rule of Thumb:**
+- Use MMR when **breadth/coverage** matters
+- Skip MMR when **precision** matters or redundancy is already handled downstream (e.g. by LLM reranking like in the previous notebook)
