@@ -1,0 +1,44 @@
+**Maximal Marginal Relevance (MMR)** is a retrieval strategy that balances two goals:
+
+1. **Relevance** — documents should be relevant to the query
+2. **Diversity** — documents should not be redundant with each other
+
+---
+
+**The Problem it Solves**
+
+Standard similarity search returns the top-k most similar documents, but they often end up being near-duplicates. MMR avoids this by penalizing documents that are too similar to ones already selected.
+
+---
+
+**The Formula**
+
+```
+MMR = argmax [ λ · Sim(doc, query) - (1-λ) · max Sim(doc, selected) ]
+```
+
+- `Sim(doc, query)` — relevance to the query
+- `Sim(doc, selected)` — similarity to already-chosen docs
+- `λ` (lambda) — controls the tradeoff:
+  - `λ = 1` → pure relevance (like standard search)
+  - `λ = 0` → pure diversity
+  - `λ = 0.5` → balanced (typical default)
+
+---
+
+**In LangChain**
+
+```python
+retriever = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={
+        "k": 5,          # number of docs to return
+        "fetch_k": 20,   # candidate pool to consider
+        "lambda_mult": 0.5  # diversity vs relevance balance
+    }
+)
+```
+
+---
+
+**When to use it:** MMR is especially useful in RAG pipelines where covering different aspects of a topic matters more than retrieving slightly-varied versions of the same chunk.
