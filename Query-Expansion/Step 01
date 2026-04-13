@@ -1,0 +1,108 @@
+import os
+from dotenv import load_dotenv
+
+# LangChain Imports
+from langchain.chat_models import init_chat_model
+from langchain.prompts import PromptTemplate
+from langchain.document_loaders import TextLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_core.output_parsers import StrOutputParser
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.runnables import RunnableSequence
+
+# --- Setup LLM ---
+load_dotenv()
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+
+llm = init_chat_model(model="groq:gemma2-9b-it")
+
+# --- Step 1: Load and embed the document ---
+loader = TextLoader("langchain_crewai_dataset.txt")
+docs = loader.load()
+
+splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=50)
+chunks = splitter.split_documents(docs)
+
+embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+vectorstore = FAISS.from_documents(chunks, embedding)
+
+# Note: Using MMR (Maximum Marginal Relevance) helps ensure the retrieved chunks are diverse!
+retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 4, "lambda_mult": 0.7})
+
+# --- Step 3: Query decomposition ---
+decomposition_prompt = PromptTemplate.from_template("""
+You are an AI assistant. Decompose the following complex question into 2 to 4 smaller sub-questions for document retrieval.
+
+Question: "{question}"
+
+Sub-questions:
+""")
+
+decomposition_chain = decomposition_prompt | llm | StrOutputParser()
+
+# --- Execution ---
+query = "How does LangChain use memory and agents compared to CrewAI?"
+decomposition_question = decomposition_chain.invoke({"question": query})
+
+print(decomposition_question)
+
+It looks like you're looking for more depth or perhaps a concrete way to tie these two concepts together.
+While **Expansion** makes your search "wider" and **Decomposition** makes it "deeper," the most powerful RAG systems actually use both. Here is a more advanced code structure that shows how to handle a complex query from start to finish.
+### The "Sub-Question" Logic Flow
+In this pattern, we don't just break the question down; we use a loop to answer each piece and then synthesize the final result.
+```python
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+llm = ChatOpenAI(model="gpt-4", temperature=0)
+
+# --- STEP 1: DECOMPOSITION ---
+# Break the complex query into 3 specific sub-questions
+decompose_prompt = ChatPromptTemplate.from_template("""
+Break this complex query into 3 distinct sub-questions that can be 
+answered independently to provide a full comparison:
+Query: {query}
+""")
+
+decompose_chain = decompose_prompt | llm | StrOutputParser()
+
+# --- STEP 2: EXPANSION (Nested) ---
+# For each sub-query, we expand it to get better retrieval
+expand_prompt = ChatPromptTemplate.from_template("""
+Provide 3 synonyms or alternative versions of this question to 
+improve document retrieval:
+Question: {sub_query}
+""")
+
+expand_chain = expand_prompt | llm | StrOutputParser()
+
+# --- STEP 3: EXECUTION ---
+complex_task = "Compare Oracle DB partitioning strategies with Spring Batch parallel processing for 1M+ records."
+
+# 1. Get sub-questions
+sub_questions = decompose_chain.invoke({"query": complex_task}).split("\n")
+
+# 2. Expand and Search (Pseudo-code for the loop)
+all_results = []
+for sq in sub_questions:
+    if sq.strip():
+        # Expand the sub-question for better vector search
+        variants = expand_chain.invoke({"sub_query": sq})
+        # doc_results = vectorstore.similarity_search(variants)
+        # all_results.append(doc_results)
+        print(f"Sub-question: {sq}\nVariants:\n{variants}\n{'-'*20}")
+
+```
+### When to use which?
+To help you decide which one to implement in your current project, consider this "Decision Tree":
+| If the User Query is... | ...Use This Technique |
+|---|---|
+| **Short & Vague** (e.g., "Java threads") | **Expansion** (Add "virtual threads", "concurrency", "performance"). |
+| **Multi-Part** (e.g., "Compare X and Y for Z") | **Decomposition** (Split into "How is X?", "How is Y?", "What is Z?"). |
+| **Technical/Specific** (e.g., "Spring Boot 3.2 JIT optimization") | **HyDE** (Generate a "fake" technical answer to match against real docs). |
+### Pro-Tip: Recursive Retrieval
+If you are building a system to handle very large documents (like migration guides or technical manuals), you can combine **Decomposition** with **Recursive Character Splitting**. This ensures that once you break the question down, you are searching against chunks of text that are small enough to be precise, but large enough to keep their context.
+Are you working on a specific comparison (like the OpenShift migration we discussed earlier) where the queries are getting a bit too "heavy" for a simple vector search?
