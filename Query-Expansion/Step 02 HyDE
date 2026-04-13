@@ -1,0 +1,43 @@
+**HyDE** stands for **Hypothetical Document Embeddings**.
+While standard RAG searches for documents that are similar to your **question**, HyDE searches for documents that are similar to a **fake (hypothetical) answer**.
+### The Problem it Solves
+In a vector database, "questions" and "answers" often live in different parts of the mathematical space.
+ * **User Query:** "How do I migrate Java code to OpenShift?" (A short, seeking question).
+ * **Target Document:** "To deploy legacy Java artifacts to OpenShift, first containerize the JAR using a Dockerfile..." (A dense, technical explanation).
+Sometimes, the vector for the question doesn't "hit" the vector for the answer perfectly.
+### How HyDE Works (The Flow)
+ 1. **Generate:** The LLM takes the user's query and writes a *hypothetical* answer (even if it's hallucinated).
+ 2. **Embed:** That "fake" answer is turned into a vector (embedding).
+ 3. **Retrieve:** The system searches the database for real documents that look like that "fake" answer.
+ 4. **Answer:** The real documents are fed back to the LLM to generate the final, factually correct response.
+### Code Implementation (LangChain)
+You can use the built-in HypotheticalDocumentEmbedder to wrap your existing embedding model.
+```python
+from langchain.chains import HypotheticalDocumentEmbedder
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+
+# 1. Setup your base components
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+base_embeddings = OpenAIEmbeddings()
+
+# 2. Create the HyDE Embedder
+# 'web_search' is a pre-defined prompt template in LangChain
+hyde_embeddings = HypotheticalDocumentEmbedder.from_llm(
+    llm, 
+    base_embeddings, 
+    "web_search" 
+)
+
+# 3. Use it just like a normal embedding model
+# When you call this, it secretly generates a fake answer first!
+vector = hyde_embeddings.embed_query("How to process 1M records in Spring Batch?")
+
+# 4. Integrate with your VectorStore
+# docsearch = Chroma.from_documents(docs, hyde_embeddings)
+
+```
+### When to use HyDE?
+ * **DO USE IT** when user queries are very short or use "layman's terms" that don't match your technical documentation.
+ * **AVOID IT** if you are worried about latency (it requires an extra LLM call before searching) or if your LLM is likely to hallucinate a completely wrong "path" that leads the search astray.
+Since you've been working with **semantic chunking** and **ChromaDB**, adding HyDE is usually the next logical step to boost your "hit rate" on those chunks. Does this approach feel like it would help with your current document retrieval?
+
