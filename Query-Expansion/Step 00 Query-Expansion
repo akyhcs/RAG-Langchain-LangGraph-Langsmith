@@ -1,0 +1,124 @@
+This code snippet implements a **Query Expansion** technique, which is a common strategy in Retrieval-Augmented Generation (RAG) pipelines to improve the quality of document retrieval.
+By rewriting or expanding a user's short query into a more descriptive one, you increase the chances of matching relevant documents in a vector database—especially when the user uses different terminology than what is stored in the documents.
+### How the Chain Works
+The code uses **LangChain Expression Language (LCEL)** to pipe three components together:
+ 1. **query_expansion_prompt**: A PromptTemplate that instructs the LLM to take the original user query and generate a version enriched with relevant keywords and context.
+ 2. **llm**: The Large Language Model (like GPT-4 or Claude) that performs the actual expansion logic based on the prompt instructions.
+ 3. **StrOutputParser()**: A utility that takes the raw output from the LLM and ensures it is returned as a clean string, rather than a complex object.
+### Implementation Example
+To see this in action, you would typically "invoke" the chain like this:
+```python
+# Example execution
+original_query = "How to fix a leaky faucet?"
+expanded_query = query_expansion_chain.invoke({"query": original_query})
+
+print(expanded_query)
+
+```
+**Potential Output:**
+> "Repairing a dripping tap, fixing kitchen sink leaks, plumbing tools for faucet repair, replacing worn-out washers or O-rings in a faucet."
+> 
+### Why use Query Expansion?
+Traditional vector search relies on **semantic similarity**. If a user's query is very brief (e.g., "fast cars"), the vector might not align perfectly with documents that use more technical language (e.g., "high-performance automotive engineering").
+**Benefits include:**
+ * **Overcoming Vocabulary Mismatch:** Handles synonyms and related terms that the user might have missed.
+ * **Contextual Depth:** Adds technical terms that help the retriever find more specific documentation.
+ * **Improved Recall:** By searching for multiple related concepts at once, you are less likely to miss relevant "needles in the haystack."
+### Common Variations
+If you find that a single expansion isn't enough, you might explore these related patterns:
+ * **Multi-Query Retrieval:** Generating 3–5 different versions of the query and retrieving documents for all of them.
+ * **HyDE (Hypothetical Document Embeddings):** Asking the LLM to write a *fake* answer to the query first, then using that fake answer to search for real documents.
+Are you planning to use this expanded query for a standard vector search, or are you looking to implement a more complex multi-query approach?
+
+
+
+To build on the snippet you shared, here are three common ways to implement and use query expansion in a production-grade RAG pipeline.
+### 1. The Full Implementation (LCEL)
+This expands your initial snippet into a complete, runnable chain. It includes the logic to pass the output of the expansion directly into a retriever.
+```python
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
+from langchain_core.runnables import RunnablePassthrough
+
+llm = ChatOpenAI(model="gpt-4-turbo", temperature=0)
+
+# 1. Define the Expansion Prompt
+expansion_prompt = ChatPromptTemplate.from_template("""
+You are an AI language model assistant. Your task is to generate five 
+different versions of the given user query to retrieve relevant documents 
+from a vector database. By generating multiple perspectives on the user query, 
+your goal is to help the user overcome some of the limited distance-based 
+similarity search.
+
+Original query: {query}
+""")
+
+# 2. Create the Expansion Chain
+expansion_chain = (
+    expansion_prompt 
+    | llm 
+    | StrOutputParser() 
+    | (lambda x: x.split("\n")) # Convert the multi-line string into a list
+)
+
+# 3. Use it in a RAG flow
+# Note: 'retriever' would be your ChromaDB or FAISS instance
+# expanded_docs = expansion_chain | retriever.map()
+
+```
+### 2. Multi-Query Retrieval
+If your goal is to find the most relevant documents, you can use the MultiQueryRetriever. Instead of you manually parsing strings, this built-in class handles the "Expansion -> Retrieval -> Unique Union" logic automatically.
+```python
+from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain_openai import ChatOpenAI
+
+# Initialize your vector store retriever
+vectorstore_retriever = vectorstore.as_retriever()
+
+# Configure the LLM to be used for expansion
+llm = ChatOpenAI(temperature=0)
+
+# Create the automated Multi-Query Retriever
+advanced_retriever = MultiQueryRetriever.from_llm(
+    retriever=vectorstore_retriever, 
+    llm=llm
+)
+
+# This will generate variants, retrieve docs for all, and unique-ify the results
+unique_docs = advanced_retriever.get_relevant_documents(query="What are the benefits of virtual threads?")
+
+```
+### 3. HyDE (Hypothetical Document Embeddings)
+Sometimes, expanding a query with keywords isn't enough. **HyDE** asks the LLM to write a *hypothetical answer* first. We then embed that answer and use it to find real documents that look like it.
+```python
+from langchain.chains import HypotheticalDocumentEmbedder, LLMChain
+from langchain_openai import OpenAIEmbeddings
+
+# Define the "Answer" prompt
+prompt_template = """Please write a short technical paragraph to answer the question:
+Question: {question}
+Passage:"""
+
+llm = ChatOpenAI(temperature=0)
+embeddings = OpenAIEmbeddings()
+
+# Create the HyDE embedder
+hyde_embeddings = HypotheticalDocumentEmbedder.from_llm(
+    llm, 
+    embeddings, 
+    "web_search"
+)
+
+# Now, when you search, it uses the "Hypothetical Answer" vector
+# vectorstore.similarity_search("How to optimize Spring Batch?", embedding=hyde_embeddings)
+
+```
+### Comparison of Methods
+| Method | Best Used For... | Complexity |
+|---|---|---|
+| **Standard Expansion** | Adding synonyms and technical keywords. | Low |
+| **Multi-Query** | Maximizing recall (finding every possible relevant doc). | Medium |
+| **HyDE** | When user queries are very short or vague. | High |
+Are you looking to integrate this into an existing Spring Boot backend using a library like LangChain4j, or are you keeping the AI logic entirely in Python?
+
