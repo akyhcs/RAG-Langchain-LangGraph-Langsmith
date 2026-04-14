@@ -1,0 +1,61 @@
+He **"Introduction to MultiModal RAG"**:
+
+---
+
+### **53. Introduction To MultiModal RAG**
+
+#### **MultiModal RAG**
+
+```
+DATA
+ ├── PDF
+ ├── Word
+ └── Database
+        ↓
+     Chunks
+        ↓
+   Embedding → Vector Representation → Vector Store
+```
+
+```
+                          Query
+                            ↓
+                       Embedding
+                            ↓
+                       Retriever
+                            ↓
+                    Top K Documents
+                            ↓
+                          LLM
+                            ↓
+                          Output (o/p)
+```
+
+```
+Multi Model → Text + Images
+               ↓          ↓
+         Embedding     Embeddings
+```
+
+---
+
+### Textual Flow Explanation (Easy to copy):
+
+**1. Data Ingestion:**
+- Data sources: **PDF**, **Word**, **Database**
+- Split into **Chunks**
+- Convert chunks into **Embeddings** (Vector Representation)
+- Store in **Vector Store**
+
+**2. Query Processing:**
+- User gives a **Query**
+- Query is converted into **Embedding**
+- **Retriever** fetches **Top K Documents** from Vector Store
+
+**3. Multi-Modal Generation:**
+- A **Multi-Modal Model** processes both **Text** and **Images**
+- Generates **Text + Images** as output
+- The model also creates embeddings for text and images separately
+
+---
+
