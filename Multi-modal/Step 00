@@ -59,3 +59,98 @@ Multi Model → Text + Images
 
 ---
 
+:
+
+---
+
+### **53. Introduction To MultiModal RAG**
+
+#### **Steps + CLIP + Contrastive Language-Image Pre-Training**
+
+```
+PDF Document
+      ↓
+[ Extract Text + Image ]
+      ↓
+   ┌─────────────────────┐
+   │   Text → Chunk → Embedding     │
+   └─────────────────────┘
+      ↓
+   Image → Embedding
+      ↓
+     Both
+      ↓
+   CLIP [OpenAI]
+      ↓
+    FAISS
+```
+
+```
+Query
+  ↓
+CLIP Embed
+  ↓
+Retriever [Text + Image]
+  ↓
+Top Results (Text + Image)
+  ↓
+Format
+  ↓
+LLM [e.g., GPT-4o]
+  ↓
+MultiModal Answer
+```
+
+---
+
+### Clean Textual Flow (Easy to Copy-Paste):
+
+**Left Side (Ingestion Pipeline):**
+- PDF Document  
+  ↓  
+- Extract Text + Image  
+  ↓  
+- Text → Chunk → Embedding  
+- Image → Embedding  
+  ↓  
+- Both embeddings go to **CLIP [OpenAI]**  
+  ↓  
+- Stored in **FAISS**
+
+**Right Side (Query Pipeline):**
+- Query  
+  ↓  
+- CLIP Embed  
+  ↓  
+- Retriever (searches Text + Image)  
+  ↓  
+- Retrieved results (Text + Image)  
+  ↓  
+- Format the input  
+  ↓  
+- LLM (e.g., GPT-4o)  
+  ↓  
+- **MultiModal Answer**
+
+---
+
+### Summary in One Block (Best for Notes):
+
+```
+MultiModal RAG Flow:
+
+1. Ingestion:
+   PDF → Extract Text & Images
+   Text → Chunking → Embedding
+   Images → Embedding
+   Both → CLIP (OpenAI) → FAISS Vector Store
+
+2. Retrieval & Generation:
+   Query → CLIP Embedding
+   → Retriever (FAISS)
+   → Top relevant (Text + Images)
+   → Format
+   → LLM (GPT-4o)
+   → MultiModal Answer (Text + Image Output)
+```
+
